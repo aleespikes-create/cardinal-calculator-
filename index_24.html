@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#AE1A21">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Cardinal Finish Estimator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: iOS-style grouped-list phone app. Frosted sticky header, inset cards, accordion rows that summarise what is inside them, and a price sheet docked at the bottom. Customer view is a separate hero-led presentation with large price cards. Cardinal red is the one brand accent. */
+:root{
+  --bg:#F3F1F1; --surface:#FFFFFF; --fill:#F2EFEF; --seg-on:#FFFFFF;
+  --ink:#1A1415; --muted:#6B6062; --faint:#9A8F91;
+  --line:rgba(40,16,20,.12); --line2:rgba(40,16,20,.07);
+  --accent:#AE1A21; --accent-ink:#FFFFFF; --accent-text:#AE1A21; --tint:#F9E7E8;
+  --hero-a:#B71D25; --hero-b:#6A0C12;
+  --good:#1D7A47; --warn:#8F5A07; --bad:#B3261E;
+  --good-bg:#E0F1E6; --warn-bg:#FBEFD6; --bad-bg:#FADEDB;
+  --glass:rgba(243,241,241,.80); --glass2:rgba(255,255,255,.84);
+  --shadow:0 1px 2px rgba(40,16,20,.06),0 10px 28px rgba(40,16,20,.08);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D0909; --surface:#1A1213; --fill:#261C1D; --seg-on:#3B2E30;
+  --ink:#F7F0F0; --muted:#AB9EA0; --faint:#7D7173;
+  --line:rgba(255,232,234,.13); --line2:rgba(255,232,234,.07);
+  --accent:#D93A42; --accent-ink:#FFFFFF; --accent-text:#FF7F85; --tint:#3A1C1F;
+  --hero-a:#9A1720; --hero-b:#3D070B;
+  --good:#5BD18E; --warn:#E5B861; --bad:#FF9185;
+  --good-bg:#14301F; --warn-bg:#35280F; --bad-bg:#3A1A16;
+  --glass:rgba(13,9,9,.80); --glass2:rgba(30,22,23,.86);
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 28px rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D0909; --surface:#1A1213; --fill:#261C1D; --seg-on:#3B2E30;
+  --ink:#F7F0F0; --muted:#AB9EA0; --faint:#7D7173;
+  --line:rgba(255,232,234,.13); --line2:rgba(255,232,234,.07);
+  --accent:#D93A42; --accent-ink:#FFFFFF; --accent-text:#FF7F85; --tint:#3A1C1F;
+  --hero-a:#9A1720; --hero-b:#3D070B;
+  --good:#5BD18E; --warn:#E5B861; --bad:#FF9185;
+  --good-bg:#14301F; --warn-bg:#35280F; --bad-bg:#3A1A16;
+  --glass:rgba(13,9,9,.80); --glass2:rgba(30,22,23,.86);
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 28px rgba(0,0,0,.4); color-scheme:dark}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.4 var(--f);-webkit-font-smoothing:antialiased;
+  padding-block:0 150px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:16px;min-width:0}
+.wrap.wide{max-width:1040px}
+#app{display:flex;flex-direction:column;gap:16px;min-width:0}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
+svg{display:block;flex:none}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:flex;align-items:center;gap:12px;min-height:60px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));
+  margin-left:calc(-1*max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(16px,env(safe-area-inset-right,0px)));
+  background:var(--glass);-webkit-backdrop-filter:saturate(1.6) blur(22px);backdrop-filter:saturate(1.6) blur(22px);box-shadow:0 1px 0 var(--line2)}
+.nav h1{flex:1;min-width:0;font-size:17px;font-weight:700;letter-spacing:-.01em;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand .bn{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.brand .bn b{font-weight:500;color:var(--accent-text)}
+.logo{width:34px;height:34px}
+.logo rect{fill:var(--accent)}
+.logo path{fill:none;stroke:#fff;stroke-width:4.4;stroke-linecap:round}
+.logo.inv rect{fill:#fff}
+.logo.inv path{stroke:#A4161A}
+.ico{width:44px;height:44px;border-radius:50%;border:0;background:var(--fill);display:grid;place-items:center;color:var(--ink);flex:none}
+.ico svg{width:22px;height:22px}
+.ico.sp{visibility:hidden}
+.large{font-size:34px;font-weight:800;letter-spacing:-.035em;line-height:1.05}
+.lt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:6px}
+
+/* controls */
+.btn{min-height:52px;border-radius:14px;border:0;background:var(--surface);box-shadow:0 0 0 1px var(--line);font-weight:600;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s,background .12s}
+.btn:active{transform:scale(.98)}
+.btn svg{width:20px;height:20px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.btn.tint{background:var(--tint);color:var(--accent-text);box-shadow:none}
+.btn.danger{color:var(--bad)}
+.btn.armed{background:var(--bad);color:#fff;box-shadow:none}
+.btn.ghost{background:none;box-shadow:none;color:var(--muted);min-height:44px;font-weight:500}
+.btn.lg{min-height:58px;font-size:17px;font-weight:700;border-radius:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--surface);border-radius:22px;box-shadow:0 0 0 1px var(--line2);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card.flush{padding:0;gap:0;overflow:hidden}
+.card h3{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.foot,.note{font-size:13px;color:var(--muted);line-height:1.4}
+.foot{padding:0 4px}
+.note b{color:var(--ink)}
+.fl{font-size:13px;font-weight:500;color:var(--muted);padding-left:2px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+input[type=text],input[type=number],textarea{width:100%;min-height:50px;border:0;border-radius:13px;background:var(--fill);color:var(--ink);padding:0 14px;font:500 17px var(--f);font-variant-numeric:tabular-nums}
+textarea{padding:12px 14px;font-size:15px;line-height:1.4;resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0}
+.inwrap{position:relative;display:block}
+.inwrap input{padding-right:var(--pr,34px)}
+.inwrap i{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--faint);font-size:14px;pointer-events:none}
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px}
+
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:13px;padding:3px;gap:2px}
+.segb{border:0;background:none;border-radius:10px;min-height:42px;font-weight:600;font-size:14px;color:var(--muted);padding:0 6px;white-space:nowrap}
+.segb[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.16),0 0 0 .5px var(--line)}
+.seg.tabs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 60px);z-index:20}
+.seg.tabs .segb{min-height:44px;font-size:15px}
+.togs,.chips{display:flex;flex-wrap:wrap;gap:8px}
+.tog{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);font-weight:600;font-size:15px;color:var(--muted)}
+.tog svg{width:16px;height:16px;display:none}
+.tog[aria-pressed="true"]{background:var(--tint);color:var(--accent-text);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.tog[aria-pressed="true"] svg{display:block}
+.chip{min-height:42px;padding:0 15px;border-radius:999px;border:0;background:var(--fill);font-weight:600;font-size:14px}
+.chip.add{background:var(--tint);color:var(--accent-text)}
+.chip.auto{background:none;box-shadow:inset 0 0 0 1px var(--line);color:var(--faint);font-weight:500;display:inline-flex;align-items:center;cursor:default}
+.chip.auto.on{background:var(--tint);color:var(--accent-text);box-shadow:none}
+.presets{display:flex;flex-wrap:wrap;gap:4px 16px}
+.lnk{border:0;background:none;color:var(--accent-text);font-weight:600;font-size:14px;min-height:36px;padding:0}
+.sw{width:52px;height:32px;border-radius:999px;border:0;background:var(--line);position:relative;flex:none;transition:background .15s}
+.sw i{position:absolute;left:3px;top:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.sw[aria-pressed="true"]{background:var(--accent)}
+.sw[aria-pressed="true"] i{transform:translateX(20px)}
+
+/* rows and groups */
+.rows>*+*{border-top:1px solid var(--line2)}
+.group{background:var(--fill);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.lrow{display:flex;align-items:center;gap:12px;min-height:56px;padding:7px 16px;min-width:0}
+.lrow .ln{flex:1;min-width:0;font-size:16px}
+.lrow .ln small{display:block;color:var(--muted);font-size:12.5px;line-height:1.25}
+.lrow>input{width:112px;min-height:42px;text-align:right;background:var(--fill);padding:0 12px}
+.group .lrow>input{background:var(--surface)}
+.lrow>input.t{width:min(62%,320px);text-align:right}
+.step{display:flex;align-items:center;background:var(--surface);border-radius:12px;box-shadow:0 0 0 1px var(--line2);flex:none}
+.card.flush .step{background:var(--fill);box-shadow:none}
+.step .xbtn{width:44px;height:44px;border:0;background:none;color:var(--accent-text);display:grid;place-items:center}
+.step .xbtn svg{width:20px;height:20px}
+.lrow .step input{width:44px;min-height:44px;text-align:center;padding:0;background:none}
+.xbtn{min-width:44px;height:44px;border-radius:12px;border:0;background:var(--fill);color:var(--muted);display:grid;place-items:center}
+.xbtn svg{width:18px;height:18px}
+.xr{gap:8px}
+.xr>input.t{flex:1;width:auto;text-align:left}
+.xr>input:not(.t){width:104px}
+.ghead{font-size:13px;font-weight:600;color:var(--muted);padding:6px 4px 0}
+.pad{padding:12px 16px}
+
+/* accordion */
+.acc-h{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;padding:8px 16px;border:0;background:none;text-align:left}
+.acc-t{font-weight:600;flex:none}
+.acc-s{flex:1;min-width:0;text-align:right;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-h svg{width:18px;height:18px;color:var(--faint);transition:transform .18s}
+.acc.open>.acc-h svg{transform:rotate(90deg)}
+.acc-b{padding:2px 16px 18px;display:flex;flex-direction:column;gap:16px}
+.card.flush>.acc+.acc{border-top:1px solid var(--line2)}
+
+/* jobs */
+.list{display:flex;flex-direction:column;gap:10px}
+.jobrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:0;box-shadow:0 0 0 1px var(--line2);border-radius:20px;padding:16px 18px;min-height:76px}
+.jobrow .jr-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.jobrow .jr-l b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.jobrow small{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jobrow .jr-r{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.jobrow>svg{width:18px;height:18px;color:var(--faint)}
+.tag{display:inline-block;font-size:11px;font-weight:700;background:var(--tint);color:var(--accent-text);border-radius:6px;padding:2px 7px;margin-left:8px;vertical-align:2px}
+.empty{background:var(--surface);border-radius:22px;padding:28px 22px;text-align:center;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 0 1px var(--line2)}
+.empty b{font-size:18px}
+.empty p{color:var(--muted)}
+
+/* rooms */
+.roomhead{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:0;text-align:left;min-height:50px}
+.roomhead .rh-l{flex:1;min-width:0;display:flex;flex-direction:column}
+.roomhead .nm{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.roomhead .sub{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roomhead .pr{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.roomhead>svg{width:18px;height:18px;color:var(--faint)}
+.warnbox{font-size:13.5px;background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:10px 14px}
+.crow{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.crow2{display:grid;grid-template-columns:1fr 1fr 44px;gap:8px}
+.crow .tot{font-size:13px;color:var(--muted);padding-left:2px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:13px;color:var(--muted)}
+.stats span{display:flex;flex-direction:column;gap:1px}
+.stats b{color:var(--ink);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;min-height:30px;padding:0 12px;border-radius:999px;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+
+/* price bar */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:35;padding:0 max(10px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.bar[hidden]{display:none}
+.bar .in{max-width:600px;margin:0 auto;background:var(--glass2);-webkit-backdrop-filter:saturate(1.6) blur(26px);backdrop-filter:saturate(1.6) blur(26px);border-radius:26px;box-shadow:var(--shadow),0 0 0 1px var(--line);display:flex;flex-direction:column;overflow:hidden}
+.bar-main{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:12px 16px 12px 20px;text-align:left;min-height:68px}
+.bar-main .bp{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.bar-main .bp b{font-size:28px;font-weight:800;letter-spacing:-.04em;line-height:1.05}
+.bar-main .bp small{font-size:12.5px;color:var(--muted)}
+.bar-main>svg{width:20px;height:20px;color:var(--faint);transition:transform .18s}
+.bar-main[aria-expanded="true"]>svg{transform:rotate(180deg)}
+.bar-sheet{padding:18px 20px 6px;display:flex;flex-direction:column;gap:14px;max-height:62vh;overflow:auto;border-bottom:1px solid var(--line2)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.kv span{display:flex;flex-direction:column;font-size:13px;color:var(--muted)}
+.kv b{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.optn{display:flex;flex-direction:column;gap:2px}
+.optn .oh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line2)}
+.optn small{color:var(--muted);font-size:13px}
+
+/* quote paper */
+.quote{background:#fff;color:#161112;border-radius:18px;box-shadow:var(--shadow),0 0 0 1px rgba(0,0,0,.06);padding:20px;display:flex;flex-direction:column;gap:12px}
+.quote small{color:#5d5254}
+.quote .qh{background:linear-gradient(160deg,#B71D25,#7A1016);color:#fff;margin:-20px -20px 4px;padding:20px;border-radius:18px 18px 0 0;display:flex;flex-direction:column;gap:2px}
+.quote .qh h3{font-size:22px;letter-spacing:-.02em}
+.quote .qh span{font-size:13px;opacity:.88}
+.quote .ln{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eadfe0;padding-bottom:10px}
+.quote .tl{display:flex;justify-content:space-between;font-size:22px;font-weight:800;letter-spacing:-.03em}
+
+/* present */
+.pbar{flex-direction:row;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pbar>div{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 180px}
+.pbar small{color:var(--muted);font-size:13px}
+.hero{position:relative;overflow:hidden;border-radius:30px;padding:24px 22px 26px;color:#fff;background:linear-gradient(158deg,var(--hero-a),var(--hero-b));display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.hero>*{position:relative}
+.hero .hb{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.hero .hb .logo{width:30px;height:30px}
+.hero h2{font-size:clamp(30px,9vw,44px);line-height:1.02;letter-spacing:-.04em;font-weight:800;margin-top:20px;max-width:14em}
+.hero .meta{font-size:15px;opacity:.86}
+.hero-art{position:absolute!important;right:-70px;top:-50px;width:300px;height:300px;fill:none;stroke:rgba(255,255,255,.09);stroke-width:30;stroke-linecap:round}
+.gl{display:inline-flex;align-items:center;min-height:32px;padding:0 13px;border-radius:999px;background:var(--fill);font-weight:600;font-size:14px}
+.scope{display:flex;flex-direction:column;gap:2px;padding:12px 0 0;border-top:1px solid var(--line2)}
+.scope small{color:var(--muted);font-size:13.5px}
+.split{display:flex;flex-direction:column;gap:14px}
+.cstep{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;background:var(--fill);border-radius:16px;padding:4px}
+.cstep b{text-align:center;font-size:19px;font-weight:700;letter-spacing:-.02em}
+.cstep .xbtn{width:52px;height:48px;background:var(--surface);color:var(--accent-text);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:12px;font-size:15.5px}
+.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--tint);color:var(--accent-text);font-weight:700;font-size:14px;display:grid;place-items:center}
+.opts{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:860px){.opts{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}.split{flex-direction:row;align-items:center;justify-content:space-between}.split>.cstep{width:260px;flex:none}}
+.pkg{background:var(--surface);border-radius:28px;padding:24px 22px 22px;display:flex;flex-direction:column;gap:12px;min-width:0;box-shadow:0 0 0 1px var(--line)}
+.pkg.mid{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.pkg.on{box-shadow:0 0 0 3.5px var(--accent),var(--shadow);background:linear-gradient(var(--tint),var(--surface) 38%)}
+.pkg h3{font-size:24px;font-weight:800;letter-spacing:-.03em}
+.pkg .paint{font-size:14px;color:var(--muted);font-weight:500;margin-top:-8px}
+.pkg .tagline{font-size:15.5px;line-height:1.4}
+.pkg .pp{font-size:46px;font-weight:800;letter-spacing:-.045em;line-height:1}
+.pkg .delta{font-size:13.5px;color:var(--muted);margin-top:-6px}
+.pkg .acts{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.badge{align-self:flex-start;background:var(--accent);color:var(--accent-ink);font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:999px}
+.ticks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:15px}
+.ticks li{display:grid;grid-template-columns:20px 1fr;gap:10px}
+.ticks li::before{content:"";width:20px;height:20px;margin-top:1px;background:var(--accent-text);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/contain no-repeat}
+.more{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:48px;border:0;border-top:1px solid var(--line2);background:none;color:var(--accent-text);font-weight:600;font-size:15px;padding:0}
+.more svg{width:18px;height:18px;transition:transform .18s}
+.more[aria-expanded="true"] svg{transform:rotate(90deg)}
+.why{background:var(--fill);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px}
+.done{flex-direction:row;align-items:flex-start;gap:14px}
+.done>div{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.okc{width:36px;height:36px;border-radius:50%;background:var(--good-bg);color:var(--good);display:grid;place-items:center;flex:none}
+.okc svg{width:20px;height:20px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.accs{border-radius:16px;box-shadow:0 0 0 1px var(--line);overflow:hidden}
+
+.bslot{display:none;visibility:hidden}
+@media (min-width:860px){.bslot{display:block}}
+</style>
+
+<body>
+<div class="wrap" id="shell">
+  <header class="nav" id="top"></header>
+  <main id="app"></main>
+</div>
+<div class="bar" id="bar" hidden></div>
+
+<script>
+//ENGINE-START
+const DEFAULTS = {
+  target:45, floor:40,
+  wall:1.15, ceil:0.77, trim:1.24,
+  doorSq:20, winSq:15, doorW:3, openCredit:50,
+  s1:100, m1:1.05, s2:150, m2:1.00, s3:250, m3:1.00, s4:350, m4:1.00,
+  ver:8,
+  hiCeilH:10, cHi:15, hiCeil2H:14, cHi2:30, cVault:10, cFurn:5,
+  cClean:0, cNormal:4, cRough:20,
+  tSame:0, tL2D:25, tD2L:50, maskPct:15, trimEq:2,
+  gMult:0.92, bMult:1.20, matShare:20, gPaint:95, bPaint:140,
+  colorsIncl:2, feeG:60, feeB:75, feeBest:90, orderMode:'high',
+  single:{
+    trim:{paint:'Sherwin-Williams trim enamel', tag:'Crisp, smooth trim and doors that look new and wipe clean.',
+      bullets:'Two full coats of Sherwin-Williams trim enamel\nEvery surface cleaned and lightly sanded for a smooth finish\nDings and gaps filled and sealed so lines are sharp\nYour walls and floors masked and protected\nCleaned up every day, with a walkthrough before we leave\n2-year warranty on our work',
+      pros:'Makes the whole room look cleaner and newer\nA smooth, tough finish that wipes clean and resists scuffs and chips\nSharp lines along your walls and floors\nA big change in how your home looks for a small investment'},
+    ceiling:{paint:'Sherwin-Williams ceiling paint', tag:'A bright, even ceiling that makes the whole room feel fresh.',
+      bullets:'Two full coats of Sherwin-Williams ceiling paint\nCracks and small holes repaired and smoothed first\nYour walls, floors and furniture covered and protected\nSharp, clean lines where the ceiling meets the walls\nCleaned up every day, with a walkthrough before we leave\n2-year warranty on our work',
+      pros:'Brightens the whole room\nCovers dingy, yellowed or dated paint\nMakes your walls look cleaner too\nA smooth, even finish with no roller marks'},
+    both:{paint:'Sherwin-Williams ceiling paint and trim enamel', tag:'A brighter ceiling and crisp trim, and your walls stay just as they are.',
+      bullets:'Two full coats on the ceiling and on the trim\nEvery surface cleaned and lightly sanded for a smooth finish\nCracks, dings and gaps filled and sealed so lines are sharp\nYour walls, floors and furniture covered and protected\nCleaned up every day, with a walkthrough before we leave\n2-year warranty on our work',
+      pros:'Makes the whole room look cleaner and newer\nBrightens the room without repainting your walls\nSharp lines along the ceiling, walls and floors\nA big change in how your home looks for a small investment'}
+  },
+  pk:[
+    {name:'Essential', paint:'Sherwin-Williams Cashmere', tag:'A smooth, velvety finish at the best price.',
+     bullets:'Two full coats of Sherwin-Williams Cashmere\nNail holes and cracks filled and smoothed\nYour floors and furniture protected\nCleaned up every day, with a walkthrough before we leave\n1-year warranty on our work',
+     best:'Bedrooms, living rooms and other low-traffic spaces, or a quick refresh.',
+     pros:'Makes your home look fresh again for the best price\nA soft, low-sheen finish that helps hide small wall flaws\nThe same careful crew, protection and cleanup as the other options\nBacked by our 1-year warranty'},
+    {name:'Signature', paint:'Sherwin-Williams SuperPaint', tag:'Beautiful walls that are easy to keep clean. Right for most homes.',
+     bullets:'Two full coats of Sherwin-Williams SuperPaint\nScuffs and fingerprints wipe right off\nEvery repair sealed first so it disappears\nSharp, clean lines where walls meet trim\nLeftover paint labeled and saved for touch-ups\n2-year warranty on our work',
+     best:'Most homes, especially hallways, kitchens and family rooms.',
+     pros:'Wipes clean after kids, pets and everyday life\nRepaired spots blend in, so you will not see where they were\nSharp, clean lines where walls meet trim\nCovered for 2 years, twice as long as Essential\nA small step up in price for a finish that lasts longer'},
+    {name:'Premier', paint:'Sherwin-Williams Duration', tag:'Our longest-lasting finish. Paint once and enjoy it.',
+     bullets:'Two full coats of Sherwin-Williams Duration\nOur toughest, easiest-to-clean finish\nResists moisture and mildew, great for kitchens and baths\nRepairs sealed and a base coat for color changes, so color looks rich and even\nSharp, clean lines where walls meet trim\nLeftover paint labeled and saved for touch-ups\n3-year warranty on our work',
+     best:'Busy homes, kitchens and baths, and anyone who wants to paint once and be done.',
+     pros:'Stands up best to kids, pets and busy days\nStays fresh in steamy baths and kitchens\nThe richest, most even color, even over a darker one\nBuilt to go longer before you need to repaint\nOur longest warranty at 3 years'}
+  ],
+  cD2L:25, cL2D:15, cSame:0,
+  rDoor:35, rDoorCase:14, rWinCase:10,
+  rHoleS:3, rHoleM:8, rHoleL:25, rCrack:4,
+  jobSmallMax:300, jobSmallM:1.10, jobMidMax:2500, jobMidM:1.00, jobLargeM:0.95,
+  minJob:600, overhead:0, round:5,
+  biz:'Cardinal Finish', bizPhone:'', terms:'This price is good for 30 days. It includes preparing the surfaces, the repairs listed above, paint, and cleanup. Moving large furniture and repairs not listed are not included.',
+  catalog:[
+    {id:'c1', label:'Seal gaps along trim', unit:'ft', cost:1},
+    {id:'c2', label:'Stain blocking', unit:'each', cost:15},
+    {id:'c3', label:'Water stain repair', unit:'each', cost:25},
+    {id:'c4', label:'Ceiling texture repair', unit:'sq ft', cost:3},
+    {id:'c5', label:'Wallpaper removal', unit:'sq ft', cost:2},
+    {id:'c6', label:'Mildew cleaning and treatment', unit:'sq ft', cost:2},
+    {id:'c7', label:'Smoke odor and stain sealing', unit:'sq ft', cost:0.6},
+    {id:'c8', label:'Crown molding', unit:'ft', cost:1.5},
+    {id:'c9', label:'Chair rail or paneling', unit:'ft', cost:2},
+    {id:'c10', label:'Closet interior', unit:'each', cost:60},
+    {id:'c11', label:'Cabinet door or drawer', unit:'each', cost:45},
+    {id:'c12', label:'Stair railing', unit:'ft', cost:6},
+    {id:'c13', label:'Built-in shelving', unit:'each', cost:150},
+    {id:'c14', label:'Fireplace mantel', unit:'each', cost:120},
+    {id:'c15', label:'Radiator or baseboard heater', unit:'each', cost:20}
+  ]
+};
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+const cnt = v => Math.max(0, Math.round(num(v)));
+const pos = v => Math.max(0, num(v));
+const colorOf = r => r.cc || (r.color ? 'd2l' : 'same');
+const condOf = r => r.cond || (r.prep ? 'rough' : 'normal');
+const hasVal = v => v !== '' && v != null;
+function sizeMult(f, st){
+  const p = [[st.s1, st.m1], [st.s2, st.m2], [st.s3, st.m3], [st.s4, st.m4]];
+  if (f <= p[0][0]) return p[0][1];
+  for (let i = 0; i < 3; i++) {
+    if (f <= p[i + 1][0]) { const t = (f - p[i][0]) / (p[i + 1][0] - p[i][0]); return p[i][1] + t * (p[i + 1][1] - p[i][1]); }
+  }
+  return p[3][1];
+}
+const roundTo = (x, n) => n > 0 ? Math.round(x / n) * n : x;
+function calc(job, st){
+  const m = Math.min(0.95, Math.max(0, num(st.target) / 100));
+  const rooms = job.rooms.map(r => {
+    const l = pos(r.l), w = pos(r.w), h = pos(r.h);
+    const custom = r.shape === 'custom';
+    const floor = custom ? pos(r.area) : l * w;
+    const per = custom ? pos(r.perim) : 2 * (l + w);
+    const vault = !!r.vault;
+    const peak = vault ? Math.max(num(r.peak), h) : h;
+    const avgH = vault ? (h + peak) / 2 : h;
+    const span = custom ? Math.sqrt(floor) : Math.min(l, w);
+    const slope = vault && span > 0 ? Math.sqrt(1 + Math.pow((peak - h) / (span / 2), 2)) : 1;
+    const doors = cnt(r.doors), wins = cnt(r.windows);
+    const doorCase = hasVal(r.doorCase) ? cnt(r.doorCase) : (r.casing ? doors : 0);
+    const winCase = hasVal(r.winCase) ? cnt(r.winCase) : (r.casing ? wins : 0);
+    const doorsPaint = hasVal(r.doorsPaint) ? cnt(r.doorsPaint) : (r.doorsOn ? doors : 0);
+    const hS = cnt(r.holesS), hM = cnt(r.holesM), hL = cnt(r.holesL), crack = pos(r.crackLF);
+    const cc = colorOf(r), cond = condOf(r), ccT = r.ccTrim || cc;
+    const wallArea = r.walls ? Math.max(0, per * avgH - (doors * st.doorSq + wins * st.winSq) * st.openCredit / 100 - pos(r.skipSq)) : 0;
+    const ceilArea = r.ceiling ? floor * slope : 0;
+    const trimLF = r.trim ? Math.max(0, per - doors * st.doorW) : 0;
+    const S = sizeMult(floor, st);
+    const hiCeil = peak > st.hiCeilH;
+    const prot = !r.walls ? num(st.maskPct) / 100 : 0;
+    let C = 0;
+    if (peak > st.hiCeil2H) C += st.cHi2; else if (hiCeil) C += st.cHi;
+    if (vault) C += st.cVault;
+    const common = (cond === 'rough' ? st.cRough : cond === 'clean' ? st.cClean : st.cNormal) + (r.furn ? st.cFurn : 0);
+    const tPct = ccT === 'd2l' ? st.tD2L : ccT === 'l2d' ? st.tL2D : st.tSame;
+    C += common + (cc === 'd2l' ? st.cD2L : cc === 'l2d' ? st.cL2D : st.cSame);
+    const Ct = common + tPct;
+    const subWC = wallArea * st.wall + ceilArea * st.ceil * (1 + prot);
+    const subT = trimLF * st.trim * (1 + prot);
+    const sub = subWC + subT;
+    const base = S * (subWC * (1 + C / 100) + subT * (1 + Ct / 100));
+    const costOpen = (doorsPaint * st.rDoor + doorCase * st.rDoorCase + winCase * st.rWinCase) * (1 + prot) * (1 + tPct / 100);
+    const costRep = hS * st.rHoleS + hM * st.rHoleM + hL * st.rHoleL + crack * st.rCrack;
+    const items = (r.items || []).map(it => ({id:it.id, label:it.label, unit:it.unit, qty:pos(it.qty), cost: pos(it.qty) * pos(it.cost)}));
+    const costItems = items.reduce((a, x) => a + x.cost, 0);
+    const warn = [];
+    if (!custom && (l <= 0 || w <= 0) && (r.walls || r.ceiling || r.trim)) warn.push('Enter length and width.');
+    if (custom && (num(r.perim) <= 0 || num(r.area) <= 0) && (r.walls || r.ceiling || r.trim)) warn.push('Enter total wall run and floor area.');
+    if (h <= 0 && r.walls) warn.push('Enter the ceiling height.');
+    if (doorCase > doors) warn.push('More door casings than doors.');
+    if (winCase > wins) warn.push('More window casings than windows.');
+    if (doorsPaint > doors) warn.push('More painted doors than doors.');
+    const detail = [];
+    const scope = [['walls', 'walls'], ['ceiling', 'ceiling'], ['trim', 'baseboards']].filter(k => r[k[0]]).map(k => k[1]);
+    if (scope.length) detail.push(scope.length > 1 ? scope.slice(0, -1).join(', ') + ' and ' + scope[scope.length - 1] : scope[0]);
+    if (doorsPaint) detail.push(doorsPaint + (doorsPaint > 1 ? ' doors' : ' door') + ' painted');
+    if (doorCase) detail.push('trim around ' + doorCase + (doorCase > 1 ? ' doors' : ' door'));
+    if (winCase) detail.push('trim around ' + winCase + (winCase > 1 ? ' windows' : ' window'));
+    if (hS + hM + hL) detail.push((hS + hM + hL) + (hS + hM + hL > 1 ? ' holes' : ' hole') + ' filled and smoothed');
+    if (crack) detail.push(Math.round(crack * 10) / 10 + ' ft of cracks repaired');
+    const wcOn = r.walls || r.ceiling, tOn = r.trim || doorsPaint > 0 || doorCase > 0 || winCase > 0;
+    if (wcOn && cc === 'd2l') detail.push('covering the darker color with a lighter one');
+    if (wcOn && cc === 'l2d') detail.push('changing to a darker color');
+    if (tOn && ccT === 'd2l') detail.push('trim: primer plus two finish coats to go from dark to light');
+    if (tOn && ccT === 'l2d') detail.push('trim: changing to a darker color');
+    if (!r.walls && (r.ceiling || tOn)) detail.push('walls masked and protected');
+    if (cond === 'rough') detail.push('extra care on worn or damaged walls');
+    items.forEach(x => { if (x.qty > 0 && x.label) detail.push(x.label + ' (' + x.qty + (x.unit ? ' ' + x.unit : '') + ')'); });
+    const unc = 0.05 + (cond === 'rough' ? 0.05 : 0) + (peak > st.hiCeilH ? 0.03 : 0) + (vault ? 0.03 : 0) + (r.furn ? 0.02 : 0) + (((cc !== 'same' && (r.walls || r.ceiling)) || (ccT !== 'same' && (r.trim || doorsPaint > 0 || doorCase > 0 || winCase > 0))) ? 0.02 : 0);
+    return {id:r.id, floor, wallArea, ceilArea, trimLF, S, C, hiCeil, sub, base, costOpen, costRep, costItems, items, warn, detail, unc, eff:{doorCase, winCase, doorsPaint}};
+  });
+  const paintSq = rooms.reduce((a, x) => a + x.wallArea + x.ceilArea, 0);
+  const eqSq = paintSq + rooms.reduce((a, x) => a + x.trimLF, 0) * num(st.trimEq);
+  const J = eqSq < st.jobSmallMax ? st.jobSmallM : eqSq < st.jobMidMax ? st.jobMidM : st.jobLargeM;
+  rooms.forEach(x => { x.paint = x.base * J; x.direct = x.paint + x.costOpen + x.costRep + x.costItems; });
+  const sumDirect = rooms.reduce((a, x) => a + x.direct, 0);
+  rooms.forEach(x => {
+    x.cost = x.direct + (sumDirect > 0 ? st.overhead * x.direct / sumDirect : 0);
+    x.price = roundTo(x.cost / (1 - m), st.round);
+  });
+  const extras = job.extras.map(e => {
+    const cost = pos(e.cost);
+    return {id:e.id, label:e.label, cost, price: roundTo(cost / (1 - m), st.round)};
+  });
+  const cost = rooms.reduce((a, x) => a + x.cost, 0) + extras.reduce((a, x) => a + x.cost, 0);
+  let engine = rooms.reduce((a, x) => a + x.price, 0) + extras.reduce((a, x) => a + x.price, 0);
+  let minApplied = false;
+  if (engine > 0 && engine < st.minJob) { engine = st.minJob; minApplied = true; }
+  const ov = num(job.override);
+  const price = ov > 0 ? ov : engine;
+  const margin = price > 0 ? (price - cost) / price : 0;
+  const roomSum = rooms.reduce((a, x) => a + x.price, 0);
+  const unc = roomSum > 0 ? rooms.reduce((a, x) => a + x.price * x.unc, 0) / roomSum : 0.05;
+  return {rooms, extras, paintSq, J, cost, engine, price, margin, minApplied, overridden: ov > 0, unc, lo: roundTo(price * (1 - unc), 10), hi: roundTo(price * (1 + unc), 10)};
+}
+//ENGINE-END
+//PKG-START
+function pkgCalc(c, job, st){
+  const incl = Math.max(0, Math.round(num(st.colorsIncl)));
+  const want = job.colors != null && job.colors !== '' ? cnt(job.colors) : incl;
+  const extra = Math.max(0, want - incl);
+  const m = Math.min(0.95, Math.max(0, num(st.target) / 100));
+  return [
+    {k:'good', mult:st.gMult, paint:st.gPaint, fee:st.feeG},
+    {k:'better', mult:1, paint:100, fee:st.feeB},
+    {k:'best', mult:st.bMult, paint:st.bPaint, fee:st.feeBest}
+  ].map(d => {
+    const base = roundTo(c.price * d.mult, st.round);
+    const colorFee = extra * num(d.fee);
+    const price = base + colorFee;
+    const cost = c.cost * (1 + num(st.matShare) / 100 * (num(d.paint) / 100 - 1)) + colorFee * (1 - m);
+    return {k:d.k, base, extra, colorFee, price, cost, margin: price > 0 ? (price - cost) / price : 0};
+  });
+}
+//PKG-END
+
+const KEY = 'painters-quote.v1';
+const uid = () => Math.random().toString(36).slice(2, 9);
+const fresh = () => JSON.parse(JSON.stringify(DEFAULTS));
+const JD = {h:'8', walls:true, ceiling:true, trim:true, casing:true, doorsOn:false, cc:'same', ccTrim:'same', cond:'normal'};
+const presetOf = v => v === 'walls' ? {walls:true, ceiling:false, trim:false, casing:false, doorsOn:false} : v === 'ceiling' ? {walls:false, ceiling:true, trim:false, casing:false, doorsOn:false} : v === 'trim' ? {walls:false, ceiling:false, trim:true, casing:true, doorsOn:true} : {walls:true, ceiling:true, trim:true, casing:true, doorsOn:false};
+const jd = j => Object.assign({}, JD, j.defaults);
+const newRoom = (o={}) => Object.assign({id:uid(), name:'Room', shape:'rect', l:'', w:'', perim:'', area:'', h:'8', vault:false, peak:'', walls:true, ceiling:true, trim:true,
+  doors:'1', windows:'1', doorCase:'', winCase:'', doorsPaint:'', holesS:'', holesM:'', holesL:'', crackLF:'', cc:'same', ccTrim:'same', cond:'normal', casing:true, doorsOn:false, furn:false, items:[]}, o);
+const newJob = (o={}) => Object.assign({id:uid(), customer:'', address:'', phone:'', created:Date.now(), rooms:[], extras:[], override:'', totalOnly:false, example:false, defaults:Object.assign({}, JD)}, o);
+function seed(){
+  const j = newJob({customer:'Example: 20 x 21 living room', address:'Sample job, delete when ready', example:true,
+    rooms:[newRoom({name:'Living Room', l:'20', w:'21', h:'8', doors:'2', windows:'2', doorCase:'2', winCase:'2', holesS:'6', crackLF:'10',
+      items:[{id:uid(), label:'Seal gaps along trim', unit:'ft', qty:'40', cost:'1'}]})]});
+  return {settings:fresh(), jobs:[j], currentId:null};
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) { S = null; }
+if (!S || !S.jobs) S = seed();
+if (S.settings && S.settings.ver < 2) { S.settings.jobSmallMax = DEFAULTS.jobSmallMax; }
+if (S.settings && S.settings.ver < 3) { S.settings.terms = DEFAULTS.terms; }
+if (S.settings && S.settings.ver < 4) { Object.assign(S.settings, {target:45, floor:40, wall:1.15, ceil:0.77, trim:1.24, openCredit:50, s1:100, m1:1.05, s2:150, m2:1.00, s3:250, m3:1.0, s4:350, m4:1.0}); if (!S.settings.biz) S.settings.biz = 'Cardinal Finish'; }
+if (S.settings && S.settings.ver < 8) {
+  if (S.settings.pk && S.settings.pk[0] && S.settings.pk[0].paint === 'Sherwin-Williams ProMar 200') S.settings.pk[0] = fresh().pk[0];
+  if (S.settings.gMult === 0.88 && S.settings.gPaint === 55) { S.settings.gMult = 0.92; S.settings.gPaint = 95; }
+}
+if (S.settings && S.settings.ver < 6) {
+  const OLDT = 'Quote valid for 30 days. Includes surface prep, patching as listed, paint, and cleanup. Furniture moving and repairs not listed are not included.';
+  if (S.settings.terms === OLDT) S.settings.terms = DEFAULTS.terms;
+  S.settings.pk = fresh().pk;
+  const LBL = {'Caulk gaps':'Seal gaps along trim','Stain-block primer spot':'Stain blocking','Water stain seal':'Water stain repair','Popcorn or texture patch':'Ceiling texture repair','Mold or mildew treatment':'Mildew cleaning and treatment','Smoke or nicotine seal':'Smoke odor and stain sealing','Crown molding (extra)':'Crown molding','Chair rail or wainscot':'Chair rail or paneling','Stair rail or spindles':'Stair railing'};
+  (S.settings.catalog || []).forEach(c => { if (LBL[c.label]) c.label = LBL[c.label]; });
+  S.jobs.forEach(j => j.rooms.forEach(r => (r.items || []).forEach(it => { if (LBL[it.label]) it.label = LBL[it.label]; })));
+}
+S.settings = Object.assign(fresh(), S.settings, {ver:8});
+if (!Array.isArray(S.settings.pk) || S.settings.pk.length !== 3) S.settings.pk = fresh().pk;
+else S.settings.pk = S.settings.pk.map((d, i) => Object.assign({}, fresh().pk[i], d));
+if (!Array.isArray(S.settings.catalog)) S.settings.catalog = fresh().catalog;
+let view = 'jobs', tab = 'rooms', openRoom = null, armed = null, copyMsg = '', fallbackText = '', prevView = 'jobs', custMode = false, openWhy = {}, openAcc = {}, barOpen = false;
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = n => '$' + Math.round(n).toLocaleString('en-US');
+const money2 = n => '$' + (Math.round(n * 100) / 100).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const pct = n => (n * 100).toFixed(1) + '%';
+const job = () => S.jobs.find(j => j.id === S.currentId);
+const room = id => job().rooms.find(r => r.id === id);
+function status(margin){
+  const t = S.settings.target / 100, f = S.settings.floor / 100;
+  return margin >= t - 0.005 ? 'good' : margin >= f ? 'warn' : 'bad';
+}
+const scopeText = r => ['walls','ceiling','trim'].filter(k => r[k]).join(', ') || 'no scope';
+
+const SV = (d, w) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w || 2.2}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  chev: SV('<path d="m9 5 7 7-7 7"/>'), back: SV('<path d="m15 5-7 7 7 7"/>'), up: SV('<path d="m5 15 7-7 7 7"/>'),
+  plus: SV('<path d="M12 5v14M5 12h14"/>'), minus: SV('<path d="M5 12h14"/>'), x: SV('<path d="m6 6 12 12M18 6 6 18"/>'),
+  check: SV('<path d="m5 12.5 4.5 4.5L19 7.5"/>', 3), sliders: SV('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>', 1.9)
+};
+const logo = inv => `<svg class="logo ${inv ? 'inv' : ''}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11"/><path d="M27 14.2a9.6 9.6 0 1 0 0 11.6"/></svg>`;
+const brandMark = () => `<span class="brand">${logo()}<span class="bn">Cardinal <b>Finish</b></span></span>`;
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const PRESETS = [['all', 'Whole room'], ['walls', 'Walls only'], ['ceiling', 'Ceiling only'], ['trim', 'Trim only']];
+const CCOPTS = [['same', 'Same color'], ['l2d', 'Light to dark'], ['d2l', 'Dark to light']];
+const CDOPTS = [['clean', 'Clean'], ['normal', 'Normal'], ['rough', 'Rough']];
+
+function seg(opts, cur, mk){
+  return `<div class="seg" role="group">${opts.map(o => `<button class="segb" ${mk(o[0])} aria-pressed="${cur === o[0]}">${o[1]}</button>`).join('')}</div>`;
+}
+function field(label, attrs, v, extra='', unit=''){
+  const pr = unit.length > 2 ? ` style="--pr:${14 + unit.length * 8 + 8}px"` : '';
+  return `<label class="field"><span class="fl">${label}</span><span class="inwrap"${pr}><input type="number" inputmode="decimal" step="any" ${attrs} value="${esc(v)}" ${extra}>${unit ? `<i>${unit}</i>` : ''}</span></label>`;
+}
+function stepper(label, id, f, v, ph='0'){
+  return `<div class="lrow"><span class="ln">${label}</span><div class="step">
+    <button class="xbtn" data-act="step" data-id="${id}" data-f="${f}" data-d="-1" aria-label="Fewer: ${label}">${I.minus}</button>
+    <input type="number" inputmode="numeric" min="0" step="1" data-room="${id}" data-f="${f}" value="${esc(v)}" placeholder="${ph}" aria-label="${label}">
+    <button class="xbtn" data-act="step" data-id="${id}" data-f="${f}" data-d="1" aria-label="More: ${label}">${I.plus}</button></div></div>`;
+}
+function setField(label, k, unit){
+  return `<label class="lrow"><span class="ln">${label}${unit ? `<small>${unit}</small>` : ''}</span><input type="number" inputmode="decimal" step="any" data-set="${k}" value="${esc(S.settings[k])}"></label>`;
+}
+const grp = rows => `<div class="group rows">${rows}</div>`;
+function acc(key, title, body, outKey, sumText){
+  const o = !!openAcc[key];
+  return `<div class="acc ${o ? 'open' : ''}"><button class="acc-h" data-act="acc" data-k="${esc(key)}" aria-expanded="${o}"><span class="acc-t">${title}</span><span class="acc-s"${outKey ? ` data-out="${esc(outKey)}"` : ''}>${sumText ? esc(sumText) : ''}</span>${I.chev}</button>${o ? `<div class="acc-b">${body}</div>` : ''}</div>`;
+}
+const swRow = (label, attrs, on, sub) => `<div class="lrow"><span class="ln">${label}${sub ? `<small>${sub}</small>` : ''}</span><button class="sw" ${attrs} aria-pressed="${!!on}" aria-label="${label}"><i></i></button></div>`;
+
+function topView(){
+  const rates = `<button class="ico" data-act="settings" aria-label="Rates and margin">${I.sliders}</button>`;
+  if (view === 'jobs') return brandMark() + rates;
+  const back = `<button class="ico" data-act="back" aria-label="${view === 'settings' ? 'Back' : 'Back to jobs'}">${I.back}</button>`;
+  if (view === 'settings') return `${back}<h1>Rates and margin</h1><span class="ico sp"></span>`;
+  const j = job();
+  return `${back}<h1>${esc(j.customer || 'New job')}</h1>${rates}`;
+}
+
+function jobsView(){
+  const rows = S.jobs.map(j => {
+    const c = calc(j, S.settings);
+    return `<button class="jobrow" data-act="open" data-id="${j.id}"><span class="jr-l"><span><b>${esc(j.customer || 'Untitled job')}</b>${j.example ? '<span class="tag">Example</span>' : ''}</span><small>${plural(j.rooms.length, 'room')} &middot; ${esc(j.address || 'No address')}</small></span><span class="jr-r num">${money(c.price)}</span>${I.chev}</button>`;
+  }).join('');
+  return `<div class="lt"><h2 class="large">Jobs</h2><button class="btn pri" data-act="newJob">${I.plus} New job</button></div>
+    ${rows ? `<div class="list">${rows}</div>` : '<div class="empty"><b>No jobs yet</b><p>Tap New job, then walk the room with your laser measure.</p></div>'}
+    <p class="foot">Jobs and rates are saved on this device only. Clearing browser data erases them.</p>`;
+}
+
+function itemRow(rid, it){
+  return `<div class="crow">
+    <input type="text" class="t" data-room="${rid}" data-item="${it.id}" data-f="label" value="${esc(it.label)}" placeholder="What needs doing" aria-label="Item">
+    <div class="crow2">
+      <input type="number" inputmode="decimal" step="any" data-room="${rid}" data-item="${it.id}" data-f="qty" value="${esc(it.qty)}" placeholder="Qty${it.unit ? ' (' + esc(it.unit) + ')' : ''}" aria-label="Quantity">
+      <input type="number" inputmode="decimal" step="any" data-room="${rid}" data-item="${it.id}" data-f="cost" value="${esc(it.cost)}" placeholder="Sub $ each" aria-label="Sub price each">
+      <button class="xbtn" data-act="delItem" data-id="${rid}" data-item="${it.id}" aria-label="Remove item">${I.x}</button></div>
+    <span class="tot num" data-out="item:${it.id}"></span></div>`;
+}
+
+function accSums(r, x){
+  const ccW = colorOf(r), ccT = r.ccTrim || ccW, CL = {same:'same color', l2d:'light to dark', d2l:'dark to light'};
+  const col = []; if (ccW !== 'same') col.push('Walls ' + CL[ccW]); if (ccT !== 'same') col.push('Trim ' + CL[ccT]);
+  const cd = {clean:'Clean', normal:'Normal', rough:'Rough'}[condOf(r)];
+  const rep = []; [['holesS', 'small'], ['holesM', 'medium'], ['holesL', 'large']].forEach(p => { if (cnt(r[p[0]])) rep.push(cnt(r[p[0]]) + ' ' + p[1]); });
+  if (pos(r.crackLF)) rep.push(pos(r.crackLF) + ' ft cracks');
+  const n = (r.items || []).length;
+  return {
+    ops: plural(cnt(r.doors), 'door') + ' · ' + plural(cnt(r.windows), 'window'),
+    color: col.join(' · ') || 'Same color',
+    cond: cd + (r.vault ? ' · Vaulted' : '') + (r.furn ? ' · Furnished' : '') + (x.hiCeil ? ' · Tall' : ''),
+    rep: rep.join(' · ') || 'None',
+    items: n ? plural(n, 'item') : 'None',
+    calc: 'Cost ' + money(x.cost)
+  };
+}
+
+function roomCard(r){
+  const open = openRoom === r.id, custom = r.shape === 'custom';
+  const head = `<button class="roomhead" data-act="toggleRoom" data-id="${r.id}" aria-expanded="${open}">
+      <span class="rh-l"><span class="nm">${esc(r.name || 'Room')}</span><span class="sub" data-out="room-dims:${r.id}"></span></span>
+      <span class="pr num" data-out="room-price:${r.id}"></span>${open ? '' : I.chev}</button>`;
+  if (!open) return `<section class="card">${head}</section>`;
+  const eff = calc({rooms:[r], extras:[]}, S.settings).rooms[0].eff;
+  const k = n => `s:${r.id}:${n}`, ak = n => `${r.id}:${n}`;
+  const tog = (f, label) => `<button class="tog" data-act="flag" data-id="${r.id}" data-f="${f}" aria-pressed="${!!r[f]}">${I.check}${label}</button>`;
+  const rid = `data-room="${r.id}"`;
+  const hF = field(r.vault ? 'Low wall' : 'Ceiling', `${rid} data-f="h"`, r.h, '', 'ft');
+  const pF = r.vault ? field('Peak', `${rid} data-f="peak"`, r.peak, '', 'ft') : '';
+  const dims = custom
+    ? `<div class="dims">${field('Wall run', `${rid} data-f="perim"`, r.perim, '', 'ft')}${field('Floor area', `${rid} data-f="area"`, r.area, '', 'sq ft')}${hF}${pF}</div>
+       <p class="note">L-shapes, alcoves and bump-outs: add up every wall as you walk the room with the laser. Split the floor into rectangles and add their areas.</p>`
+    : `<div class="dims">${field('Length', `${rid} data-f="l"`, r.l, '', 'ft')}${field('Width', `${rid} data-f="w"`, r.w, '', 'ft')}${hF}${pF}</div>`;
+  const ops = grp(stepper('Doors in room', r.id, 'doors', r.doors) + stepper('Windows in room', r.id, 'windows', r.windows) + stepper('Door casings', r.id, 'doorCase', r.doorCase, eff.doorCase) + stepper('Window casings', r.id, 'winCase', r.winCase, eff.winCase) + stepper('Doors painted', r.id, 'doorsPaint', r.doorsPaint, eff.doorsPaint))
+    + `<p class="note">Leave casings and painted doors blank to follow the Casing and Doors buttons, one per opening. Type a number only when it differs. Doors and windows take part of their area off the wall.</p>`;
+  const color = `<div class="field"><span class="fl">Walls and ceiling</span>${seg(CCOPTS, colorOf(r), v => `data-act="cc" data-id="${r.id}" data-v="${v}"`)}</div>
+    <div class="field"><span class="fl">Trim and doors</span>${seg(CCOPTS, r.ccTrim || colorOf(r), v => `data-act="ccT" data-id="${r.id}" data-v="${v}"`)}</div>
+    <p class="note">Trim is priced on its own. Dark to light trim is primer plus two finish coats, three passes instead of the usual two. Set the percentages in Rates.</p>`;
+  const cond = `<div class="field"><span class="fl">Surface condition</span>${seg(CDOPTS, condOf(r), v => `data-act="cond" data-id="${r.id}" data-v="${v}"`)}</div>
+    <p class="note">Normal already covers typical nail holes and dings. Rough means heavy wear, peeling or lots of patching. Count only extra damage under Repairs.</p>`
+    + grp(swRow('Vaulted ceiling', `data-act="flag" data-id="${r.id}" data-f="vault"`, r.vault) + swRow('Furnished', `data-act="flag" data-id="${r.id}" data-f="furn"`, r.furn)
+      + `<label class="lrow"><span class="ln">Wall not painted<small>Tile, cabinets (sq ft)</small></span><input type="number" inputmode="decimal" step="any" min="0" ${rid} data-f="skipSq" value="${esc(r.skipSq)}" placeholder="0"></label>`)
+    + `<span class="chip auto" data-out="room-hi:${r.id}">Over ${S.settings.hiCeilH} ft adds the tall-ceiling charge automatically</span>`;
+  const rep = grp(stepper('Small holes', r.id, 'holesS', r.holesS) + stepper('Medium holes', r.id, 'holesM', r.holesM) + stepper('Large holes', r.id, 'holesL', r.holesL)
+      + `<label class="lrow"><span class="ln">Cracks to tape and mud<small>feet</small></span><input type="number" inputmode="decimal" step="any" min="0" ${rid} data-f="crackLF" value="${esc(r.crackLF)}" placeholder="0"></label>`)
+    + `<p class="note">Small is a nail or screw. Medium is a drywall anchor or doorknob dent, up to about 2 in. Large needs a patch, up to about 6 in.</p>`;
+  const quick = S.settings.catalog.map(c => `<button class="chip add" data-act="addItem" data-id="${r.id}" data-k="${c.id}">+ ${esc(c.label)}</button>`).join('');
+  const items = `<div class="chips">${quick}<button class="chip add" data-act="addItem" data-id="${r.id}" data-k="custom">+ Custom item</button></div>`
+    + ((r.items || []).length ? grp((r.items || []).map(it => itemRow(r.id, it)).join('')) : '');
+  const stats = `<div class="stats">
+      <span>Wall area<b data-out="room-wall:${r.id}"></b></span><span>Ceiling area<b data-out="room-ceil:${r.id}"></b></span>
+      <span>Baseboard<b data-out="room-trim:${r.id}"></b></span><span>Size multiplier<b data-out="room-s:${r.id}"></b></span>
+      <span>Complexity<b data-out="room-c:${r.id}"></b></span><span>Paint cost<b data-out="room-paint:${r.id}"></b></span>
+      <span>Doors and casing<b data-out="room-open:${r.id}"></b></span><span>Repairs<b data-out="room-rep:${r.id}"></b></span>
+      <span>Other items<b data-out="room-items:${r.id}"></b></span><span>Room cost<b data-out="room-cost:${r.id}"></b></span></div>`;
+  return `<section class="card">${head}
+    <p class="warnbox" data-out="room-warn:${r.id}" hidden></p>
+    <label class="field"><span class="fl">Room name</span><input type="text" class="t" ${rid} data-f="name" value="${esc(r.name)}"></label>
+    ${seg([['rect', 'Rectangle'], ['custom', 'Custom shape']], custom ? 'custom' : 'rect', v => `data-act="shape" data-id="${r.id}" data-v="${v}"`)}
+    ${dims}
+    <div class="field"><span class="fl">What gets painted</span><div class="togs">${tog('walls', 'Walls')}${tog('ceiling', 'Ceiling')}${tog('trim', 'Baseboard')}${tog('casing', 'Casing')}${tog('doorsOn', 'Doors')}</div>
+      <div class="presets">${PRESETS.map(p => `<button class="lnk" data-act="preset" data-id="${r.id}" data-v="${p[0]}">${p[1]}</button>`).join('')}</div></div>
+    <div class="accs rows">
+      ${acc(ak('ops'), 'Doors and windows', ops, k('ops'))}${acc(ak('color'), 'Color change', color, k('color'))}${acc(ak('cond'), 'Condition and extras', cond, k('cond'))}
+      ${acc(ak('rep'), 'Repairs', rep, k('rep'))}${acc(ak('items'), 'Other items', items, k('items'))}${acc(ak('calc'), 'How this room is priced', stats, k('calc'))}</div>
+    <div class="two"><button class="btn" data-act="dupRoom" data-id="${r.id}">Duplicate</button>
+      <button class="btn danger ${armed === 'r' + r.id ? 'armed' : ''}" data-act="delRoom" data-id="${r.id}">${armed === 'r' + r.id ? 'Tap again to remove' : 'Remove room'}</button></div>
+  </section>`;
+}
+
+function defaultsBody(j){
+  const d = jd(j);
+  const tog = (f, label) => `<button class="tog" data-act="jdflag" data-f="${f}" aria-pressed="${!!d[f]}">${I.check}${label}</button>`;
+  const pick = (f, opts) => seg(opts, d[f], v => `data-act="jdset" data-f="${f}" data-v="${v}"`);
+  return `<p class="note">Set these once with the customer. Every new room starts with them, so you only change what is different.</p>
+    ${field('Ceiling height', 'data-jd="h"', d.h, '', 'ft')}
+    <div class="field"><span class="fl">What gets painted</span><div class="togs">${tog('walls', 'Walls')}${tog('ceiling', 'Ceiling')}${tog('trim', 'Baseboard')}${tog('casing', 'Casing')}${tog('doorsOn', 'Doors')}</div>
+      <div class="presets">${PRESETS.map(p => `<button class="lnk" data-act="jdpreset" data-v="${p[0]}">${p[1]}</button>`).join('')}</div></div>
+    <div class="field"><span class="fl">Walls and ceiling color change</span>${pick('cc', CCOPTS)}</div>
+    <div class="field"><span class="fl">Trim and doors color change</span>${pick('ccTrim', CCOPTS)}</div>
+    <div class="field"><span class="fl">Surface condition</span>${pick('cond', CDOPTS)}</div>
+    <button class="btn ${armed === 'apply' ? 'armed' : ''}" data-act="applyDefaults">${armed === 'apply' ? 'Tap again to overwrite every room' : 'Apply to all rooms'}</button>`;
+}
+const custRows = j => grp(`<label class="lrow"><span class="ln">Name</span><input type="text" class="t" data-job="customer" value="${esc(j.customer)}" placeholder="Customer name"></label>
+    <label class="lrow"><span class="ln">Address</span><input type="text" class="t" data-job="address" value="${esc(j.address)}" placeholder="Street address"></label>
+    <label class="lrow"><span class="ln">Phone</span><input type="text" class="t" inputmode="tel" data-job="phone" value="${esc(j.phone)}" placeholder="Optional"></label>`);
+
+function roomsTab(){
+  const j = job();
+  const extras = j.extras.map(e => `<div class="lrow xr">
+      <input type="text" class="t" data-extra="${e.id}" data-f="label" value="${esc(e.label)}" placeholder="Cabinets, stairs..." aria-label="Extra item">
+      <input type="number" inputmode="decimal" step="any" data-extra="${e.id}" data-f="cost" value="${esc(e.cost)}" placeholder="Sub $" aria-label="Sub cost">
+      <button class="xbtn" data-act="delExtra" data-id="${e.id}" aria-label="Remove extra">${I.x}</button></div>`).join('');
+  return `<section class="card flush">${acc('cust', 'Customer', custRows(j), 'cust-sum')}${acc('defaults', 'Job defaults', defaultsBody(j), 'def-sum')}</section>
+    ${j.rooms.map(roomCard).join('')}
+    <div class="two"><button class="btn pri" data-act="addRoom">${I.plus} Add room</button><button class="btn" data-act="copyLast">Copy last room</button></div>
+    <section class="card"><h3>Whole-job extras</h3><p class="note">Flat-priced items that are not tied to one room, like a mobilization fee. Enter what your sub charges and the app adds your margin.</p>
+      ${extras ? grp(extras) : ''}<button class="btn" data-act="addExtra">${I.plus} Add extra</button></section>`;
+}
+
+function quoteLines(){
+  const j = job(), c = calc(j, S.settings), lines = [];
+  j.rooms.forEach((r, i) => { if (c.rooms[i].price > 0) lines.push([`${r.name || 'Room'}`, c.rooms[i].detail.join(' · '), c.rooms[i].price]); });
+  j.extras.forEach((e, i) => { if (c.extras[i].price > 0) lines.push([e.label || 'Extra', '', c.extras[i].price]); });
+  return {lines, total: c.price};
+}
+function quoteText(){
+  const j = job(), s = S.settings, q = quoteLines();
+  const out = [s.biz || 'Painting quote', s.bizPhone, '', 'Quote for ' + (j.customer || 'customer'), j.address, new Date().toLocaleDateString('en-US'), ''];
+  q.lines.forEach(l => out.push(j.totalOnly ? `${l[0]}: ${l[1] || 'as discussed'}` : `${l[0]} (${l[1] || 'as discussed'}): ${money(l[2])}`));
+  out.push('', 'Total: ' + money(q.total), '', s.terms);
+  return out.filter(x => x !== undefined && x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+}
+function quoteTab(){
+  const j = job(), s = S.settings, q = quoteLines();
+  const lines = q.lines.map(l => `<div class="ln"><span><b>${esc(l[0])}</b><br><small>${esc(l[1])}</small></span>${j.totalOnly ? '' : `<span class="num"><b>${money(l[2])}</b></span>`}</div>`).join('');
+  return `<section class="card"><h3>Customer</h3>${custRows(j)}
+      ${grp(swRow('Show total only', 'data-act="totalOnly"', j.totalOnly, 'Hides each line price on the quote'))}</section>
+    <div class="quote" id="quoteDoc">
+      <div class="qh"><h3>${esc(s.biz || 'Cardinal Finish')}</h3><span>Interior painting estimate${s.bizPhone ? ' &middot; ' + esc(s.bizPhone) : ''}</span></div>
+      <div><b>${esc(j.customer || 'Customer name')}</b><br><small>${esc(j.address)} &middot; ${new Date().toLocaleDateString('en-US')}</small></div>
+      ${lines}
+      <div class="tl"><span>Total</span><span class="num">${money(q.total)}</span></div>
+      <small>${esc(s.terms)}</small>
+    </div>
+    <button class="btn pri lg" data-act="copy">Copy quote text</button>
+    ${copyMsg ? `<p class="note">${esc(copyMsg)}</p>` : ''}
+    ${fallbackText ? `<textarea id="fb" readonly rows="8">${esc(fallbackText)}</textarea>` : ''}
+    <p class="foot">Your cost and margin never appear here. Paste the text into a message or a Jobber quote, or screenshot the quote above.</p>
+    <button class="btn danger ${armed === 'job' ? 'armed' : ''}" data-act="delJob">${armed === 'job' ? 'Tap again to delete this job' : 'Delete job'}</button>`;
+}
+
+const PK_KEYS = ['good', 'better', 'best'];
+function bulletsOf(d){ return String(d.bullets || '').split('\n').map(x => x.trim()).filter(Boolean); }
+function proposalText(){
+  const j = job(), s = S.settings, c = calc(j, s), pk = pkgCalc(c, j, s), i = PK_KEYS.indexOf(j.pkg);
+  if (j.pkg === 'single') {
+    const kind = kindOf(j, c), d = s.single[kind] || s.single.trim;
+    if (kind === 'three') return '';
+    const out = [s.biz || 'Cardinal Finish', s.bizPhone, '', 'Proposal for ' + (j.customer || 'customer'), j.address, new Date().toLocaleDateString('en-US'), '', 'What we will do:'];
+    c.rooms.forEach((x, k) => out.push('- ' + (j.rooms[k].name || 'Room') + ': ' + x.detail.join(', ')));
+    out.push('', SINGLE_NAMES[kind] + ': ' + d.paint);
+    String(d.bullets || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(b => out.push('- ' + b));
+    out.push('', 'Total: ' + money(c.price), '', s.terms);
+    return out.filter(x => x !== undefined && x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+  if (i < 0) return '';
+  const d = s.pk[i], p = pk[i];
+  const out = [s.biz || 'Cardinal Finish', s.bizPhone, '', 'Proposal for ' + (j.customer || 'customer'), j.address, new Date().toLocaleDateString('en-US'), '', 'What we will paint:'];
+  c.rooms.forEach((x, k) => out.push('- ' + (j.rooms[k].name || 'Room') + ': ' + x.detail.join(', ')));
+  out.push('', d.name + ' package: ' + d.paint);
+  bulletsOf(d).forEach(b => out.push('- ' + b));
+  if (p.extra) out.push('- ' + p.extra + ' extra color' + (p.extra > 1 ? 's' : '') + ' (' + money(p.colorFee) + ')');
+  out.push('', 'Total: ' + money(p.price), '', s.terms);
+  return out.filter(x => x !== undefined && x !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+}
+const SINGLE_NAMES = {trim:'Trim and door painting', ceiling:'Ceiling painting', both:'Ceiling and trim painting'};
+function rawKind(j, c){
+  const rs = j.rooms.map((r, i) => ({r, x:c.rooms[i]})).filter(o => o.x.price > 0);
+  if (!rs.length || rs.some(o => o.r.walls)) return 'three';
+  const t = rs.some(o => o.r.trim || o.x.eff.doorCase > 0 || o.x.eff.winCase > 0 || o.x.eff.doorsPaint > 0), ce = rs.some(o => o.r.ceiling);
+  return t && ce ? 'both' : t ? 'trim' : ce ? 'ceiling' : 'three';
+}
+const kindOf = (j, c) => j.optMode === 'three' ? 'three' : rawKind(j, c);
+function glance(c){
+  const sum = f => c.rooms.reduce((a, x) => a + f(x), 0), out = [], n = c.rooms.filter(x => x.price > 0).length;
+  const wa = sum(x => x.wallArea), ca = sum(x => x.ceilArea), tl = sum(x => x.trimLF), dc = sum(x => x.eff.doorCase), wc = sum(x => x.eff.winCase), dp = sum(x => x.eff.doorsPaint);
+  const big = v => Math.round(v).toLocaleString('en-US');
+  out.push(n + (n === 1 ? ' room' : ' rooms'));
+  if (wa > 0) out.push(big(wa) + ' sq ft of walls');
+  if (ca > 0) out.push(big(ca) + ' sq ft of ceiling');
+  if (tl > 0) out.push(big(tl) + ' ft of baseboards');
+  if (dc) out.push(dc + (dc === 1 ? ' set of door trim' : ' sets of door trim'));
+  if (wc) out.push(wc + (wc === 1 ? ' set of window trim' : ' sets of window trim'));
+  if (dp) out.push(dp + (dp === 1 ? ' door' : ' doors'));
+  return out;
+}
+function howSteps(j, c, kind){
+  const rs = j.rooms.map((r, i) => ({r, x:c.rooms[i]})).filter(o => o.x.price > 0);
+  const trimOn = o => o.r.trim || o.x.eff.doorCase > 0 || o.x.eff.winCase > 0 || o.x.eff.doorsPaint > 0;
+  const ccT = o => o.r.ccTrim || colorOf(o.r);
+  const d2l = rs.some(o => trimOn(o) && ccT(o) === 'd2l'), l2d = rs.some(o => trimOn(o) && ccT(o) === 'l2d');
+  const repairs = rs.some(o => cnt(o.r.holesS) + cnt(o.r.holesM) + cnt(o.r.holesL) + pos(o.r.crackLF) > 0);
+  const stains = rs.some(o => (o.r.items || []).some(it => /stain/i.test(it.label) && pos(it.qty) > 0));
+  const t = kind === 'trim' || kind === 'both', ce = kind === 'ceiling' || kind === 'both';
+  const st = ['We cover your floors and furniture and mask your walls.'];
+  if (t) st.push('We clean and lightly sand all the trim and doors, then fill dings and gaps so the lines are sharp.');
+  if (ce) st.push(repairs ? 'We repair cracks and small holes so the ceiling is smooth.' : 'We clean the ceiling and tape the edges for sharp lines.');
+  if (ce && stains) st.push('We seal stains so they do not show through the new paint.');
+  if (d2l) st.push('Because your trim is going from dark to light, we start with a coat of primer so the old color cannot show through.');
+  if (l2d) st.push('Going to a darker color can take an extra coat, and that is already included.');
+  st.push(d2l ? 'We paint two smooth finish coats over the primer.' : 'We paint two smooth finish coats.');
+  st.push('We clean up and walk through the finished work with you.');
+  return st;
+}
+function orderOf(j){
+  if (!j.order) {
+    const m = S.settings.orderMode;
+    if (m === 'alternate') {
+      const hi = S.jobs.filter(x => !x.example && x.order === 'high').length, lo = S.jobs.filter(x => !x.example && x.order === 'low').length;
+      j.order = hi > lo ? 'low' : 'high';
+    } else j.order = m === 'low' ? 'low' : 'high';
+    save();
+  }
+  return j.order;
+}
+const dateStr = () => new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+function heroBlock(title, j, s){
+  return `<section class="hero"><svg class="hero-art" viewBox="0 0 200 200" aria-hidden="true"><path d="M150 52a74 74 0 1 0 0 96"/></svg>
+    <div class="hb">${logo(true)}<span>${esc(s.biz || 'Cardinal Finish')}</span></div>
+    <h2>${title}</h2><span class="meta">${esc(j.address || 'Interior painting')} &middot; ${dateStr()}</span></section>`;
+}
+function painterBar(j, kind){
+  if (custMode) return '';
+  return `<section class="card pbar"><div><b>${j.customer ? 'Presenting to ' + esc(j.customer) : 'Ready to present'}</b><small>${kind === 'three' ? 'Three options' : 'One proposal'}. Hand over the phone when you are ready.</small></div>
+    <button class="btn pri" data-act="custOn">Show to customer</button></section>`;
+}
+function scopeList(j, c){
+  return c.rooms.map((x, k) => `<div class="scope"><b>${esc(j.rooms[k].name || 'Room')}</b><small>${esc(x.detail.join(' · '))}</small></div>`)
+    .concat(j.extras.filter(e => e.label).map(e => `<div class="scope"><b>${esc(e.label)}</b></div>`)).join('');
+}
+function copyBlock(){
+  return custMode ? '' : `<button class="btn pri" data-act="copyProp">Copy proposal text</button>${copyMsg ? `<p class="note">${esc(copyMsg)}</p>` : ''}${fallbackText ? `<textarea id="fb" readonly rows="8">${esc(fallbackText)}</textarea>` : ''}`;
+}
+const okIcon = `<span class="okc">${I.check}</span>`;
+
+function presentOne(j, s, c, kind){
+  const d = s.single[kind] || s.single.trim, name = SINGLE_NAMES[kind];
+  const lines = String(d.bullets || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const pros = String(d.pros || '').split('\n').map(x => x.trim()).filter(Boolean);
+  const chosen = j.pkg === 'single';
+  const selected = chosen ? `<section class="card done">${okIcon}<div><h3>Approved</h3><p class="note">Total ${money(c.price)}. We will confirm your color and your start date next.</p>${copyBlock()}</div></section>` : '';
+  return `${painterBar(j, 'one')}
+    ${heroBlock(esc(name) + (j.customer ? ' for ' + esc(j.customer) : ''), j, s)}
+    <section class="card"><h3>Your project</h3><div class="chips">${glance(c).map(x => `<span class="gl">${esc(x)}</span>`).join('')}</div>${scopeList(j, c)}</section>
+    <section class="card"><h3>How we will do it</h3><ol class="steps">${howSteps(j, c, kind).map(x => `<li>${esc(x)}</li>`).join('')}</ol></section>
+    <article class="pkg mid ${chosen ? 'on' : ''}">
+      <h3>${esc(name)}</h3><div class="paint">${esc(d.paint)}</div><p class="tagline">${esc(d.tag)}</p>
+      <div class="pp num">${money(c.price)}</div>
+      <ul class="ticks">${lines.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+      ${pros.length ? `<div class="why"><b>Why it is worth it</b><ul class="ticks">${pros.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>` : ''}
+      <div class="acts"><button class="btn pri lg" data-act="pick" data-k="single" aria-pressed="${chosen}">${chosen ? 'Approved' : 'Approve this proposal'}</button></div>
+    </article>
+    ${selected}
+    <p class="foot">${esc(s.terms)}</p>
+    ${custMode ? '<button class="btn ghost" data-act="custOff">Exit customer view</button>' : '<button class="btn" data-act="optMode" data-v="three">Show three options instead</button>'}`;
+}
+function numbersCard(j, c){
+  const s = S.settings;
+  if (c.price <= 0) return '';
+  const kind = kindOf(j, c);
+  const rows = kind === 'three' ? pkgCalc(c, j, s).map((p, i) => [s.pk[i].name, p.price, p.cost, p.margin]) : [[SINGLE_NAMES[kind], c.price, c.cost, c.margin]];
+  return `<div class="optn"><span class="fl">Margin by option. Only you see this.</span>${rows.map(r => `<div class="oh"><div><b>${esc(r[0])}</b><br><small>Cost ${money(r[2])} &middot; Profit ${money(r[1] - r[2])}</small></div><div style="text-align:right"><b class="num">${money(r[1])}</b><br><span class="pill ${status(r[3])}">${pct(r[3])}</span></div></div>`).join('')}</div>`;
+}
+function orderCard(){
+  const s = S.settings, out = {high:{n:0, c:{good:0, better:0, best:0}, rev:0}, low:{n:0, c:{good:0, better:0, best:0}, rev:0}};
+  S.jobs.filter(x => !x.example && x.pkg && x.order).forEach(x => {
+    const pk = pkgCalc(calc(x, s), x, s), p = pk.find(q => q.k === x.pkg), o = out[x.order];
+    if (p && o) { o.n++; o.c[x.pkg]++; o.rev += p.price; }
+  });
+  const rows = ['high', 'low'].filter(k => out[k].n).map(k => {
+    const o = out[k], pc = x => Math.round(100 * o.c[x] / o.n) + '%';
+    return `<div class="scope"><b>${k === 'high' ? 'Highest first' : 'Lowest first'} &middot; ${plural(o.n, 'job')}</b><small>${esc(s.pk[0].name)} ${pc('good')} &middot; ${esc(s.pk[1].name)} ${pc('better')} &middot; ${esc(s.pk[2].name)} ${pc('best')} &middot; average ${money(o.rev / o.n)}</small></div>`;
+  }).join('');
+  return rows ? `<div class="field"><span class="fl">Order results</span>${rows}<p class="note">From jobs where a customer chose an option. Wait for 20 or more per order before trusting it.</p></div>` : '';
+}
+function presentTab(){
+  const j = job(), s = S.settings, c = calc(j, s);
+  if (c.price <= 0) return `<div class="empty"><b>Nothing to present yet</b><p>Add rooms on the Rooms tab first. The options are built from your estimate.</p></div>`;
+  const kind = kindOf(j, c);
+  if (kind !== 'three') return presentOne(j, s, c, kind);
+  const pk = pkgCalc(c, j, s), extra = pk[0].extra;
+  const nCol = Math.max(0, Math.round(num(s.colorsIncl))) + extra;
+  const mode = orderOf(j), seq = mode === 'low' ? [0, 1, 2] : [2, 1, 0];
+  const cards = seq.map(i => {
+    const p = pk[i], d = s.pk[i], mid = i === 1, chosen = j.pkg === p.k, open = !!openWhy[p.k];
+    let delta = '';
+    if (mode === 'low') { if (i > 0) delta = money(p.price - pk[i - 1].price) + ' more than ' + s.pk[i - 1].name; }
+    else if (i < 2) delta = money(pk[i + 1].price - p.price) + ' less than ' + s.pk[i + 1].name;
+    const pros = String(d.pros || '').split('\n').map(x => x.trim()).filter(Boolean);
+    return `<article class="pkg ${mid ? 'mid' : ''} ${chosen ? 'on' : ''}">
+      ${mid ? '<div class="badge">Our recommendation</div>' : '<div class="badge bslot" aria-hidden="true">&nbsp;</div>'}
+      <h3>${esc(d.name)}</h3><div class="paint">${esc(d.paint)}</div><p class="tagline">${esc(d.tag)}</p>
+      <div class="pp num">${money(p.price)}</div>${delta ? `<span class="delta">${esc(delta)}</span>` : ''}
+      ${p.extra ? `<p class="note">Includes ${plural(p.extra, 'extra color')} (${money(p.colorFee)})</p>` : ''}
+      <ul class="ticks">${bulletsOf(d).map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+      <div class="acts">
+        <button class="more" data-act="why" data-k="${p.k}" aria-expanded="${open}"><span>${open ? 'Hide details' : 'Why choose ' + esc(d.name)}</span>${I.chev}</button>
+        ${open ? `<div class="why">${d.best ? `<p><b>Best for:</b> ${esc(d.best)}</p>` : ''}<ul class="ticks">${pros.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>` : ''}
+        <button class="btn lg ${mid || chosen ? 'pri' : 'tint'}" data-act="pick" data-k="${p.k}" aria-pressed="${chosen}">${chosen ? 'Selected: ' + esc(d.name) : 'Choose ' + esc(d.name)}</button>
+      </div>
+    </article>`;
+  }).join('');
+  const sel = PK_KEYS.indexOf(j.pkg);
+  const selected = sel >= 0 ? `<section class="card done">${okIcon}<div><h3>You chose ${esc(s.pk[sel].name)}</h3><p class="note">Total ${money(pk[sel].price)}. We will confirm color choices and your start date next.</p>${copyBlock()}</div></section>` : '';
+  return `${painterBar(j, 'three')}
+    ${heroBlock('Painting options' + (j.customer ? ' for ' + esc(j.customer) : ''), j, s)}
+    <section class="card"><h3>Here is what we will paint</h3><div class="chips">${glance(c).map(x => `<span class="gl">${esc(x)}</span>`).join('')}</div>${scopeList(j, c)}
+      <p class="note">Every option covers all of this. What changes is how long it looks great, how easy it is to keep clean, and how long we stand behind it.</p></section>
+    <section class="card"><div class="split"><div><h3>Your colors</h3><p class="note" style="margin-top:6px">Your price covers up to ${s.colorsIncl} colors, with white ceilings and trim included. Dreaming of an accent wall or a bolder room? Add a color and the prices below update.</p></div>
+      <div class="cstep"><button class="xbtn" data-act="colorStep" data-d="-1" aria-label="Fewer colors">${I.minus}</button><b>${plural(nCol, 'color')}</b><button class="xbtn" data-act="colorStep" data-d="1" aria-label="More colors">${I.plus}</button></div></div></section>
+    <div class="opts">${cards}</div>
+    ${selected}
+    <p class="foot">${esc(s.terms)}</p>
+    ${!custMode && rawKind(j, c) !== 'three' ? '<button class="btn" data-act="optMode" data-v="auto">Back to one proposal</button>' : ''}
+    ${custMode ? '<button class="btn ghost" data-act="custOff">Exit customer view</button>' : ''}`;
+}
+
+function jobView(){
+  if (custMode) return presentTab();
+  const tabs = [['rooms', 'Rooms'], ['quote', 'Quote'], ['present', 'Present']];
+  return `<div class="seg tabs" role="tablist">${tabs.map(t => `<button class="segb" role="tab" data-act="tab" data-t="${t[0]}" aria-selected="${tab === t[0]}" aria-pressed="${tab === t[0]}">${t[1]}</button>`).join('')}</div>
+    ${tab === 'rooms' ? roomsTab() : tab === 'quote' ? quoteTab() : presentTab()}`;
+}
+
+function settingsView(){
+  const s = S.settings, F = setField;
+  const tf = (label, attrs, v, cls='') => `<label class="lrow"><span class="ln">${label}</span><input type="text" class="t" ${attrs} value="${esc(v)}"></label>`;
+  const ta = (label, attrs, v, rows) => `<label class="field pad"><span class="fl">${label}</span><textarea ${attrs} rows="${rows}">${esc(v)}</textarea></label>`;
+  const A = (key, title, sum, body) => acc('set:' + key, title, body, null, sum);
+  const cat = s.catalog.map(c => `<div class="crow">
+      <input type="text" class="t" data-cat="${c.id}" data-f="label" value="${esc(c.label)}" placeholder="Item" aria-label="Item">
+      <div class="crow2"><input type="text" class="t" data-cat="${c.id}" data-f="unit" value="${esc(c.unit)}" placeholder="Unit" aria-label="Unit">
+        <input type="number" inputmode="decimal" step="any" data-cat="${c.id}" data-f="cost" value="${esc(c.cost)}" placeholder="Sub $ per unit" aria-label="Sub price per unit">
+        <button class="xbtn" data-act="delCat" data-id="${c.id}" aria-label="Remove from price list">${I.x}</button></div></div>`).join('');
+  const singles = [['trim', 'Trim-only proposal'], ['ceiling', 'Ceiling-only proposal'], ['both', 'Ceiling and trim proposal']];
+  return `<section class="card flush">
+    ${A('margin', 'Margin', 'Target ' + s.target + '%', grp(F('Target margin', 'target', '%') + F('Warn below', 'floor', '%')) + `<p class="note">Price = cost &divide; (1 &minus; target). Green at the target or above, amber between the two numbers, red below the warning. Cost means sub labor plus materials.</p>`)}
+    ${A('rates', 'Sub rates', 'Paint, doors, repairs',
+      `<div class="ghead">Paint</div>${grp(F('Walls', 'wall', '$ / sq ft') + F('Ceiling', 'ceil', '$ / sq ft') + F('Baseboard', 'trim', '$ / ft') + F('Door size', 'doorSq', 'sq ft') + F('Window size', 'winSq', 'sq ft') + F('Door width', 'doorW', 'ft') + F('Opening credit', 'openCredit', '%'))}
+       <p class="note">Opening credit is how much of each door and window area comes off the wall. It is under 100% because cutting in around openings still takes time. Starting rates are tuned so a 20 x 20 living room with walls, ceiling and trim lands near $2,100 at a 45% margin. Replace them with your sub's real rates.</p>
+       <div class="ghead">Doors, windows and casing (sub cost each)</div>${grp(F('Paint a door', 'rDoor', '$ each') + F('Door casing', 'rDoorCase', '$ each') + F('Window casing', 'rWinCase', '$ each'))}
+       <div class="ghead">Repairs (sub cost, before margin)</div>${grp(F('Small hole', 'rHoleS', '$ each') + F('Medium hole', 'rHoleM', '$ each') + F('Large hole', 'rHoleL', '$ each') + F('Crack, tape and mud', 'rCrack', '$ / ft'))}
+       <p class="note">Repairs are not changed by room size or job size scales.</p>`)}
+    ${A('adj', 'Condition, color and complexity', 'Adders',
+      `<div class="ghead">Surface condition</div>${grp(F('Clean', 'cClean', '%') + F('Normal', 'cNormal', '%') + F('Rough', 'cRough', '%'))}
+       <p class="note">Added to the paint cost of the room as a percentage.</p>
+       <div class="ghead">Wall and ceiling color change</div>${grp(F('Same color', 'cSame', '%') + F('Light to dark', 'cL2D', '%') + F('Dark to light', 'cD2L', '%'))}
+       <div class="ghead">Trim and door color change</div>${grp(F('Same color', 'tSame', '%') + F('Light to dark', 'tL2D', '%') + F('Dark to light', 'tD2L', '%'))}
+       <p class="note">Added to baseboards, trim around doors and windows, and painted doors. Dark to light is primer plus two finish coats: three passes instead of two, so +50%. Light to dark is usually one extra coat, +25%.</p>
+       <div class="ghead">Ceiling or trim without walls</div>${grp(F('Masking and protection', 'maskPct', '%') + F('Trim counts as', 'trimEq', 'sq ft per ft'))}
+       <p class="note">When the walls are not being painted, ceiling and trim work needs walls masked and floors protected. This percentage is added to that work. For job size, trim counts as extra square feet at the rate above.</p>
+       <div class="ghead">Complexity add-ons</div>${grp(F('Tall ceiling over', 'hiCeilH', 'ft') + F('Tall ceiling', 'cHi', '%') + F('Very tall over', 'hiCeil2H', 'ft') + F('Very tall', 'cHi2', '%') + F('Vaulted', 'cVault', '%') + F('Furnished', 'cFurn', '%'))}
+       <p class="note">Percentages are added together with the color change, then applied to the paint cost. Very tall replaces tall. Height uses the peak for vaulted rooms.</p>`)}
+    ${A('size', 'Room and job size', 'Scales and minimum',
+      `<div class="ghead">Room size scale</div>${grp(F('Floor area 1', 's1', 'sq ft') + F('Multiplier 1', 'm1') + F('Floor area 2', 's2', 'sq ft') + F('Multiplier 2', 'm2') + F('Floor area 3', 's3', 'sq ft') + F('Multiplier 3', 'm3') + F('Floor area 4', 's4', 'sq ft') + F('Multiplier 4', 'm4'))}
+       <p class="note">Multiplies the sub price by room floor area. Values blend smoothly between points, so a slightly bigger room never costs less. Smaller rooms cost more per square foot.</p>
+       <div class="ghead">Job size scale</div>${grp(F('Small if under', 'jobSmallMax', 'sq ft') + F('Small multiplier', 'jobSmallM') + F('Mid if under', 'jobMidMax', 'sq ft') + F('Mid multiplier', 'jobMidM') + F('Large multiplier', 'jobLargeM') + F('Minimum job', 'minJob', '$') + F('Overhead per job', 'overhead', '$ cost') + F('Round prices to', 'round', '$'))}
+       <p class="note">Based on total wall and ceiling area across all rooms. Small means a closet or bath on its own.</p>`)}
+    ${A('opts', 'Good, better, best', 'Pricing and order',
+      `<p class="note">Better is your estimate. Good and Best are set from it. The cost settings let the app show your margin for each option.</p>
+       ${grp(F('Good price vs Better', 'gMult', 'x') + F('Best price vs Better', 'bMult', 'x') + F('Materials share of cost', 'matShare', '%') + F('Good paint cost vs Better', 'gPaint', '%') + F('Best paint cost vs Better', 'bPaint', '%'))}
+       <div class="ghead">Extra colors</div>${grp(F('Colors included', 'colorsIncl') + F('Good fee', 'feeG', '$') + F('Better fee', 'feeB', '$') + F('Best fee', 'feeBest', '$'))}
+       <p class="note">Colors included in every price, not counting white ceilings and trim. Each color past that adds the fee for the option chosen.</p>
+       <div class="field"><span class="fl">Option order</span>${seg([['high', 'Highest first'], ['low', 'Lowest first'], ['alternate', 'Alternate']], s.orderMode, v => `data-act="setOrder" data-v="${v}"`)}</div>
+       <p class="note">Highest first shows the most expensive option first. Research suggests this lifts revenue by anchoring on the top price. Alternate flips the order job by job so you can compare your own results.</p>
+       ${orderCard()}`)}
+    ${A('words', 'Option wording', 'What customers read',
+      s.pk.map((d, i) => `<div class="ghead">Option ${i + 1}</div>${grp(tf('Name', `data-pk="${i}" data-f="name"`, d.name) + tf('Paint', `data-pk="${i}" data-f="paint"`, d.paint) + tf('One-line pitch', `data-pk="${i}" data-f="tag"`, d.tag) + tf('Best for', `data-pk="${i}" data-f="best"`, d.best)
+        + ta('What is included, one per line', `data-pk="${i}" data-f="bullets"`, d.bullets, 6) + ta('Selling points when tapped, one per line', `data-pk="${i}" data-f="pros"`, d.pros, 6))}`).join('')
+      + `<p class="note">Edit these to match what you actually deliver. The warranty lengths are suggestions.</p>`
+      + singles.map(o => { const d = s.single[o[0]] || {}; return `<div class="ghead">${o[1]}</div>${grp(tf('Paint', `data-sg="${o[0]}" data-f="paint"`, d.paint) + tf('One-line pitch', `data-sg="${o[0]}" data-f="tag"`, d.tag) + ta('What is included, one per line', `data-sg="${o[0]}" data-f="bullets"`, d.bullets, 6) + ta('Why it is worth it, one per line', `data-sg="${o[0]}" data-f="pros"`, d.pros, 5))}`; }).join('')
+      + `<p class="note">Single proposals are used when no walls are being painted. One price, no options. Name the exact paint you use.</p>`)}
+    ${A('cat', 'Quick-add price list', plural(s.catalog.length, 'item'),
+      `<p class="note">These appear as one-tap buttons in every room. Each job keeps the price it was added at, so changing a price here does not change old quotes.</p>
+       ${cat ? grp(cat) : ''}<button class="btn" data-act="addCat">${I.plus} Add to price list</button>`)}
+    ${A('biz', 'Business and terms', s.biz || '', grp(tf('Business name', 'data-set="biz" data-str="1"', s.biz) + tf('Phone', 'data-set="bizPhone" data-str="1" inputmode="tel"', s.bizPhone)) + ta('Terms on every quote', 'data-set="terms" data-str="1"', s.terms, 4).replace('class="field pad"', 'class="field"'))}
+  </section>
+  <button class="btn danger ${armed === 'reset' ? 'armed' : ''}" data-act="reset">${armed === 'reset' ? 'Tap again to reset all rates' : 'Reset rates to defaults'}</button>`;
+}
+
+const barHidden = () => view !== 'job' || !job() || tab === 'present' || custMode;
+function render(){
+  const wide = view === 'job' && (custMode || tab === 'present');
+  $('#shell').className = 'wrap' + (wide ? ' wide' : '');
+  $('#top').hidden = view === 'job' && custMode;
+  $('#top').innerHTML = topView();
+  $('#app').innerHTML = view === 'jobs' ? jobsView() : view === 'settings' ? settingsView() : jobView();
+  renderBar();
+  refresh();
+}
+function renderBar(){
+  const bar = $('#bar');
+  if (barHidden()) { bar.hidden = true; bar.innerHTML = ''; return; }
+  const j = job();
+  bar.hidden = false;
+  bar.innerHTML = `<div class="in">
+    ${barOpen ? `<div class="bar-sheet">
+      <div class="kv"><span>Your cost<b data-out="sum-cost"></b></span><span>Profit<b data-out="sum-profit"></b></span><span>Likely range<b data-out="sum-range"></b></span><span>Paintable area<b data-out="sum-paint"></b></span></div>
+      <p class="note" data-out="sum-note"></p>
+      ${field('Override price, optional', 'data-job="override"', j.override, 'placeholder="Use the calculated price"', '$')}
+      <div id="optNums"></div></div>` : ''}
+    <button class="bar-main" data-act="bar" aria-expanded="${barOpen}" aria-label="Price details"><span class="bp"><b class="num" data-out="sum-price"></b><small data-out="bar-sub"></small></span><span class="pill" data-out="bar-pill"></span>${I.up}</button></div>`;
+}
+
+function setOut(key, text){ document.querySelectorAll(`[data-out="${key}"]`).forEach(el => { el.textContent = text; }); }
+function refresh(){
+  if (barHidden()) return;
+  const j = job(), c = calc(j, S.settings), st = status(c.margin);
+  c.rooms.forEach((x, i) => {
+    const r = j.rooms[i], id = x.id;
+    const dimText = r.shape === 'custom' ? `${r.perim || '?'} ft of wall · ${r.area || '?'} sq ft` : `${r.l || '?'} × ${r.w || '?'} ft`;
+    setOut('room-dims:' + id, `${dimText} · ${r.vault ? (r.h || '?') + '–' + (r.peak || '?') + ' ft vaulted' : (r.h || '?') + ' ft ceiling'} · ${scopeText(r)}`);
+    setOut('room-price:' + id, money(x.price));
+    setOut('room-wall:' + id, Math.round(x.wallArea) + ' sq ft');
+    setOut('room-ceil:' + id, Math.round(x.ceilArea) + ' sq ft');
+    setOut('room-trim:' + id, Math.round(x.trimLF) + ' ft');
+    setOut('room-s:' + id, '×' + x.S.toFixed(2));
+    setOut('room-c:' + id, '+' + x.C + '%');
+    setOut('room-paint:' + id, money(x.paint));
+    setOut('room-open:' + id, money(x.costOpen));
+    setOut('room-rep:' + id, money(x.costRep));
+    setOut('room-items:' + id, money(x.costItems));
+    setOut('room-cost:' + id, money(x.cost));
+    const sm = accSums(r, x);
+    Object.keys(sm).forEach(k => setOut(`s:${id}:${k}`, sm[k]));
+    document.querySelectorAll(`[data-out="room-hi:${id}"]`).forEach(el => el.classList.toggle('on', x.hiCeil));
+    document.querySelectorAll(`[data-out="room-warn:${id}"]`).forEach(el => { el.textContent = x.warn.join(' '); el.hidden = !x.warn.length; });
+    x.items.forEach(it => setOut('item:' + it.id, `Line cost ${money2(it.cost)}`));
+  });
+  setOut('cust-sum', [j.customer, j.address].filter(Boolean).join(' · ') || 'Add name and address');
+  setOut('def-sum', `${jd(j).h} ft · ${scopeText(jd(j))}`);
+  setOut('sum-price', money(c.price));
+  setOut('sum-cost', money(c.cost));
+  setOut('sum-profit', money(c.price - c.cost));
+  setOut('sum-range', money(c.lo) + '–' + money(c.hi));
+  setOut('sum-paint', Math.round(c.paintSq).toLocaleString('en-US') + ' sq ft');
+  setOut('bar-sub', `Cost ${money(c.cost)} · Profit ${money(c.price - c.cost)}`);
+  document.querySelectorAll('[data-out="bar-pill"]').forEach(el => { el.className = 'pill ' + st; el.textContent = pct(c.margin) + ' margin'; });
+  const on = $('#optNums'); if (on) on.innerHTML = numbersCard(j, c);
+  let note = `Job size multiplier ×${c.J.toFixed(2)}.`;
+  if (c.minApplied) note += ` Minimum job price of ${money(S.settings.minJob)} applied.`;
+  if (c.overridden) note += ` Override in use; calculated price was ${money(c.engine)}.`;
+  setOut('sum-note', note);
+}
+
+document.addEventListener('input', e => {
+  const t = e.target, d = t.dataset;
+  if (d.item) { const it = room(d.room).items.find(x => x.id === d.item); it[d.f] = t.value; }
+  else if (d.room) { room(d.room)[d.f] = t.value; }
+  else if (d.extra) { job().extras.find(x => x.id === d.extra)[d.f] = t.value; }
+  else if (d.jd) { const j = job(); j.defaults = jd(j); j.defaults[d.jd] = t.value; }
+  else if (d.job) { job()[d.job] = t.value; if (d.job === 'customer') { const h = document.querySelector('#top h1'); if (h) h.textContent = t.value || 'New job'; } }
+  else if (d.sg) { S.settings.single[d.sg][d.f] = t.value; }
+  else if (d.pk != null && d.pk !== '') { S.settings.pk[+d.pk][d.f] = t.value; }
+  else if (d.cat) { const c = S.settings.catalog.find(x => x.id === d.cat); c[d.f] = d.f === 'cost' ? num(t.value) : t.value; }
+  else if (d.set) { S.settings[d.set] = d.str ? t.value : num(t.value); }
+  else return;
+  save();
+  refresh();
+  if (d.room && !d.item && d.f === 'name') document.querySelectorAll(`[data-act="toggleRoom"][data-id="${d.room}"] .nm`).forEach(el => el.textContent = t.value || 'Room');
+});
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  const disarm = () => { armed = null; };
+  if (a === 'open') { S.currentId = id; view = 'job'; tab = 'rooms'; openRoom = null; copyMsg = ''; fallbackText = ''; barOpen = false; openAcc.cust = false; }
+  else if (a === 'newJob') { const j = newJob({rooms:[newRoom({name:'Room 1'})]}); S.jobs.unshift(j); S.currentId = j.id; view = 'job'; tab = 'rooms'; openRoom = j.rooms[0].id; barOpen = false; openAcc.cust = true; }
+  else if (a === 'back') { view = view === 'settings' && S.currentId && job() && prevView === 'job' ? 'job' : 'jobs'; }
+  else if (a === 'settings') { prevView = view; view = 'settings'; }
+  else if (a === 'tab') { tab = b.dataset.t; copyMsg = ''; fallbackText = ''; }
+  else if (a === 'acc') { openAcc[b.dataset.k] = !openAcc[b.dataset.k]; }
+  else if (a === 'bar') { barOpen = !barOpen; }
+  else if (a === 'toggleRoom') { openRoom = openRoom === id ? null : id; }
+  else if (a === 'addRoom') { const r = newRoom(Object.assign({name:'Room ' + (job().rooms.length + 1)}, jd(job()))); job().rooms.push(r); openRoom = r.id; }
+  else if (a === 'shape') { room(id).shape = b.dataset.v; }
+  else if (a === 'flag') { const r = room(id); r[b.dataset.f] = !r[b.dataset.f]; }
+  else if (a === 'cc') { const r = room(id); r.cc = b.dataset.v; r.color = false; }
+  else if (a === 'step') { const r = room(id), f = b.dataset.f; const eff = calc({rooms:[r], extras:[]}, S.settings).rooms[0].eff; const cur = hasVal(r[f]) ? cnt(r[f]) : (eff[f] || 0); r[f] = String(Math.max(0, cur + num(b.dataset.d))); }
+  else if (a === 'cond') { const r = room(id); r.cond = b.dataset.v; r.prep = false; }
+  else if (a === 'jdflag') { const j = job(); j.defaults = jd(j); j.defaults[b.dataset.f] = !j.defaults[b.dataset.f]; }
+  else if (a === 'jdset') { const j = job(); j.defaults = jd(j); j.defaults[b.dataset.f] = b.dataset.v; }
+  else if (a === 'applyDefaults') { if (armed === 'apply') { const j = job(), d = jd(j); j.rooms.forEach(r => { const c = Object.assign({}, d); if (r.vault) delete c.h; Object.assign(r, c, {prep:false, color:false}); }); disarm(); } else { armed = 'apply'; render(); return; } }
+  else if (a === 'copyLast') { const rs = job().rooms, o = rs[rs.length - 1]; const r = o ? Object.assign({}, o, {id:uid(), name:'Room ' + (rs.length + 1), items:(o.items || []).map(i => Object.assign({}, i, {id:uid()}))}) : newRoom(Object.assign({name:'Room 1'}, jd(job()))); rs.push(r); openRoom = r.id; }
+  else if (a === 'addItem') {
+    const r = room(id), k = b.dataset.k, c = S.settings.catalog.find(x => x.id === k);
+    r.items = r.items || [];
+    r.items.push(c ? {id:uid(), label:c.label, unit:c.unit, qty:'1', cost:String(c.cost)} : {id:uid(), label:'', unit:'', qty:'1', cost:''});
+    openAcc[id + ':items'] = true;
+  }
+  else if (a === 'delItem') { const r = room(id); r.items = r.items.filter(x => x.id !== b.dataset.item); }
+  else if (a === 'addCat') { S.settings.catalog.push({id:uid(), label:'', unit:'each', cost:0}); }
+  else if (a === 'delCat') { S.settings.catalog = S.settings.catalog.filter(x => x.id !== id); }
+  else if (a === 'dupRoom') { const o = room(id); const r = Object.assign({}, o, {id:uid(), name:(o.name || 'Room') + ' copy', items:(o.items || []).map(i => Object.assign({}, i, {id:uid()}))}); job().rooms.push(r); openRoom = r.id; }
+  else if (a === 'delRoom') { if (armed === 'r' + id) { job().rooms = job().rooms.filter(r => r.id !== id); openRoom = null; disarm(); } else { armed = 'r' + id; save(); render(); return; } }
+  else if (a === 'addExtra') { job().extras.push({id:uid(), label:'', cost:''}); }
+  else if (a === 'delExtra') { job().extras = job().extras.filter(x => x.id !== id); }
+  else if (a === 'totalOnly') { job().totalOnly = !job().totalOnly; }
+  else if (a === 'delJob') { if (armed === 'job') { S.jobs = S.jobs.filter(j => j.id !== S.currentId); S.currentId = null; view = 'jobs'; disarm(); } else { armed = 'job'; render(); return; } }
+  else if (a === 'reset') { if (armed === 'reset') { const keep = {biz:S.settings.biz, bizPhone:S.settings.bizPhone, terms:S.settings.terms}; S.settings = Object.assign(fresh(), keep); disarm(); } else { armed = 'reset'; render(); return; } }
+  else if (a === 'ccT') { room(id).ccTrim = b.dataset.v; }
+  else if (a === 'preset') { const r = room(id), v = b.dataset.v; Object.assign(r, presetOf(v)); if (v === 'walls' || v === 'ceiling') { r.doorCase = ''; r.winCase = ''; r.doorsPaint = ''; } }
+  else if (a === 'jdpreset') { const j = job(); j.defaults = jd(j); Object.assign(j.defaults, presetOf(b.dataset.v)); }
+  else if (a === 'optMode') { job().optMode = b.dataset.v; }
+  else if (a === 'why') { openWhy[b.dataset.k] = !openWhy[b.dataset.k]; }
+  else if (a === 'setOrder') { S.settings.orderMode = b.dataset.v; }
+  else if (a === 'pick') { job().pkg = b.dataset.k; copyMsg = ''; fallbackText = ''; }
+  else if (a === 'colorStep') { const j = job(); const cur = j.colors != null && j.colors !== '' ? cnt(j.colors) : Math.round(num(S.settings.colorsIncl)); j.colors = Math.max(0, cur + num(b.dataset.d)); }
+  else if (a === 'custOn') { custMode = true; copyMsg = ''; fallbackText = ''; window.scrollTo(0, 0); }
+  else if (a === 'custOff') { custMode = false; window.scrollTo(0, 0); }
+  else if (a === 'copyProp' || a === 'copy') {
+    const text = a === 'copy' ? quoteText() : proposalText(), label = a === 'copy' ? 'Quote text copied.' : 'Proposal text copied.';
+    const ok = () => { copyMsg = label; fallbackText = ''; render(); };
+    const bad = () => { copyMsg = 'Copy was blocked here. Select the text below and copy it.'; fallbackText = text; render(); const f = $('#fb'); if (f) { f.focus(); f.select(); } };
+    try { navigator.clipboard.writeText(text).then(ok, bad); } catch (err) { bad(); }
+    return;
+  }
+  if (a !== 'delRoom' && a !== 'delJob' && a !== 'reset') disarm();
+  save(); render();
+  if (a === 'open' || a === 'back' || a === 'settings' || a === 'newJob') window.scrollTo(0, 0);
+});
+render();
+</script>
+</body>
+</html>
